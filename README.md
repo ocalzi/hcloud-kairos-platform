@@ -17,12 +17,15 @@ you can read end-to-end in an evening and adapt.
 ```
 hcloud-kairos-platform/
 ├── hcloud-mgmt/         # OpenTofu: network, gateway, LBs, workers
+├── ovh-mgmt/            # OpenTofu: public DNS record for the gateway
 └── hcloud-postinstall/  # Helper image: detach the Kairos installer ISO
                          # and power VMs back on after first install.
 ```
 
-Two components, both small. Each ships with its own README explaining what it
-does and how to run it.
+Three components, all small. Each ships with its own README explaining what
+it does and how to run it. Bootstrap order is `hcloud-mgmt` →
+`hcloud-postinstall` → `ovh-mgmt` (the DNS record consumes the gateway IP
+that `hcloud-mgmt` produces).
 
 ## Background
 

@@ -4,9 +4,23 @@ ssh_public_key = "ssh-ed25519 AAAA... your-laptop"
 hetzner_location     = "fsn1"
 hetzner_network_zone = "eu-central"
 
-node_type    = "cpx32"
+node_type    = "cx23"
 network_cidr = "10.0.0.0/8"
 
 # ID of the Kairos / Hadron ISO uploaded to your Hetzner project.
 # Find it with: `hcloud iso list`.
 kairos_image_id = "<PLACEHOLDER-iso-id>"
+
+# Console-fallback password for the `kairos` user. Plaintext OK on Hadron;
+# prefer `openssl passwd -6 'your-pw'` for SHA-512 crypt in production.
+kairos_user_password = "<PLACEHOLDER-password>"
+
+# Let's Encrypt ACME registration address (expiry warnings land here).
+le_email = "you@example.com"
+
+# Public FQDN served by Netbird. Must resolve to the gateway public IP
+# (handled by ../ovh-mgmt). Cert-manager issues a Let's Encrypt cert for it.
+netbird_domain = "showcase.example.com"
+
+# 32-byte base64 — generate with: openssl rand -base64 32
+netbird_encryption_key = "<PLACEHOLDER-32-byte-base64>"

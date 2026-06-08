@@ -62,8 +62,11 @@ mapfile -t targets < <(
         jq -r '.[]
                | select(.status == "off")
                | select(.iso != null)
-               | select((.iso.name // "") | ascii_downcase | contains("kairos"))
-               | "\(.id)\t\(.name)\t\(.iso.name)"'
+               # Public ISOs expose the filename in .iso.name; private uploads
+               # leave .name empty and stash the filename in .description.
+               # Match either so a custom Kairos ISO upload works the same.
+               | select(((.iso.name // "") + " " + (.iso.description // "")) | ascii_downcase | contains("kairos"))
+               | "\(.id)\t\(.name)\t\(.iso.description // .iso.name)"'
 )
 
 if [[ ${#targets[@]} -eq 0 ]]; then

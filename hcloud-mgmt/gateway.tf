@@ -7,16 +7,22 @@
 # k3s flags, traefik HelmChartConfig, and cert-manager bootstrap manifests;
 # this showcase stubs them out so the file stays readable.
 locals {
+  gateway_hostname = "gateway-showcase"
   gateway_user_data = templatefile("${path.module}/templates/gateway-cloud-init.yaml.tpl", {
-    hostname            = "<PLACEHOLDER-gateway-hostname>"
+    hostname            = local.gateway_hostname
     ssh_authorized_keys = jsonencode([var.ssh_public_key])
+    template_password   = var.kairos_user_password
+    private_cidr        = var.network_cidr
+    le_email            = var.le_email
+    netbird_domain      = var.netbird_domain
+    encryption_key      = var.netbird_encryption_key
   })
 }
 
 module "gateway" {
   source = "./modules/hetzner-server"
 
-  name        = "<PLACEHOLDER-gateway-hostname>"
+  name        = local.gateway_hostname
   server_type = var.node_type
   location    = var.hetzner_location
   network_id  = module.network.network_id

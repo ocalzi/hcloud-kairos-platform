@@ -22,9 +22,9 @@ variable "ssh_public_key" {
 }
 
 variable "node_type" {
-  description = "Hetzner server type for the gateway / worker nodes. cpx32 = 4 vCPU / 8 GB; cx23 = 2 vCPU / 4 GB."
+  description = "Hetzner server type for the gateway / worker nodes. cx23 = 2 vCPU / 4 GB (smallest viable for k3s); cpx32 = 4 vCPU / 8 GB."
   type        = string
-  default     = "cpx32"
+  default     = "cx23"
 }
 
 variable "kairos_image_id" {
@@ -36,4 +36,26 @@ variable "network_cidr" {
   description = "Top-level CIDR of the private network. Subnets carve this up further."
   type        = string
   default     = "10.0.0.0/8"
+}
+
+variable "kairos_user_password" {
+  description = "Password for the `kairos` user injected via cloud-init. Plaintext is accepted by Hadron; use `openssl passwd -6` for SHA-512 crypt in real deployments."
+  type        = string
+  sensitive   = true
+}
+
+variable "le_email" {
+  description = "Email address used to register the Let's Encrypt ACME account. Receives expiry warnings."
+  type        = string
+}
+
+variable "netbird_domain" {
+  description = "Public FQDN the Netbird dashboard / management is served from (e.g. showcase.calzi.eu). Must point at the gateway public IP — handled by ovh-mgmt."
+  type        = string
+}
+
+variable "netbird_encryption_key" {
+  description = "32-byte base64 secret used by Netbird server to encrypt state at rest. Generate with: openssl rand -base64 32"
+  type        = string
+  sensitive   = true
 }

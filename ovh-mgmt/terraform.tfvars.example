@@ -1,0 +1,5 @@
+zone         = "calzi.eu"
+subdomain    = "showcase"
+gateway_ipv4 = "<PLACEHOLDER-from-hcloud-mgmt-output>"
+ttl          = 60
+ovh_endpoint = "ovh-eu"
