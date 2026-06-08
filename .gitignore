@@ -1,0 +1,19 @@
+# OpenTofu / Terraform state and local caches
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Variable files — keep examples, ignore real values
+*.tfvars
+!*.tfvars.example
+
+# Secrets / credentials that occasionally land in this tree
+idp.json
+kubeconfig*
+*.pem
+*.key
+*.token
+
+# Env files
+**/.env

@@ -1,0 +1,12 @@
+hcloud_token   = "<PLACEHOLDER-hcloud-api-token>"
+ssh_public_key = "ssh-ed25519 AAAA... your-laptop"
+
+hetzner_location     = "fsn1"
+hetzner_network_zone = "eu-central"
+
+node_type    = "cpx32"
+network_cidr = "10.0.0.0/8"
+
+# ID of the Kairos / Hadron ISO uploaded to your Hetzner project.
+# Find it with: `hcloud iso list`.
+kairos_image_id = "<PLACEHOLDER-iso-id>"
