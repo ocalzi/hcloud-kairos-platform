@@ -43,6 +43,28 @@ expect: HCCM for node/loadbalancer reconciliation, the Hetzner CSI driver for
 PVs, Cilium for the dataplane, and Gateway API on top for ingress. The result
 is a cluster that costs a coffee a day and behaves like the bigger ones.
 
+## AI-assisted authorship
+
+Per [Linux Foundation generative-AI guidance](https://www.linuxfoundation.org/legal/generative-ai)
+and the spirit of [Model Card](https://modelcards.withgoogle.com/about) /
+disclosure best practice:
+
+- Significant portions of the OpenTofu HCL, shell script, CI workflows, and
+  prose in this repository were drafted with the assistance of
+  **Anthropic Claude (Opus 4.7)** via [Claude Code](https://claude.com/claude-code).
+- Every file has been read, reviewed, edited, and accepted by a human
+  (Olivier Calzi). The author retains responsibility for correctness,
+  security, and licensing compliance under the MIT terms below.
+- No third-party copyrighted code was knowingly ingested into the prompt
+  context. All design choices — module split, two-phase boot model,
+  `hcloud_image` data-source lookup, `ignore_changes` policy — were
+  human-directed; the AI produced the boilerplate to express them.
+- AI-assisted commits in this repository are signed off with a
+  `Co-Authored-By: Claude` trailer per the Linux DCO convention extension
+  for AI co-authorship, so blame/`git log` makes the provenance auditable.
+
+If you reuse or fork this code, the same review discipline is recommended.
+
 ## License
 
-MIT.
+[MIT](LICENSE).

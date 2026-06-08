@@ -25,7 +25,12 @@ resource "hcloud_server" "this" {
     # Re-rendering user_data shouldn't replace a running node — Kairos applies
     # config on boot, not on cloud-init refresh. Force a rebuild with
     # `tofu taint <addr>` when you actually want the new config to apply.
-    ignore_changes = [image, user_data]
+    #
+    # iso is also ignored: after Kairos installs to disk, hcloud-postinstall
+    # detaches the ISO. The Hetzner-side state then shows iso=null, which would
+    # otherwise drift against the var.iso_id we passed at creation and produce a
+    # noisy plan on every run. Bumping ISO versions means a tainted rebuild.
+    ignore_changes = [image, iso, user_data]
   }
 }
 
