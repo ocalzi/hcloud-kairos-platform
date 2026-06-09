@@ -30,33 +30,61 @@ that `hcloud-mgmt` produces).
 ## Architecture at a glance
 
 ```mermaid
-flowchart TB
-  User([User])
+flowchart LR
+  User([User / Netbird client])
+  LE([Let's Encrypt ACME])
+  Internet([Public internet])
 
-  subgraph Hetzner["Hetzner Cloud project"]
-    direction TB
-
-    subgraph Net["hcloud_network 10.0.0.0/8"]
-      direction TB
-      Gateway["Gateway VM<br/>Kairos + k3s server<br/>10.0.3.2 (management)"]
-      Workers["Worker VMs<br/>Kairos + k3s agent<br/>(backend / frontend subnets)"]
-      AppLB["HCCM-managed LB<br/>Service type=LoadBalancer<br/>HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP=true"]
-    end
-
-    ISO[("Kairos ISO<br/>custom, uploaded")]
+  subgraph OVH["OVH zone (ovh-mgmt)"]
+    DNS["A record<br/>netbird.example → gateway IPv4"]
   end
 
-  User -->|HTTPS| AppLB
-  AppLB -->|private IP :NodePort| Gateway
-  AppLB -->|private IP :NodePort| Workers
-  ISO -.first boot.-> Gateway
-  ISO -.first boot.-> Workers
+  subgraph Hetzner["Hetzner Cloud project (hcloud-mgmt)"]
+    direction TB
+
+    ISO[("Custom Kairos ISO")]
+
+    subgraph Net["hcloud_network net01 — 10.0.0.0/8"]
+      direction TB
+
+      subgraph Mgmt["management 10.0.3.0/24"]
+        Gateway["Gateway VM (cx23) — 10.0.3.2 + public IPv4<br/>━━━━━━━━━━━━━━━━━━<br/>Kairos OS · k3s --cluster-init · Traefik (hostPort 80/443)<br/>cert-manager + ClusterIssuer · Netbird server / dashboard / Dex IdP<br/>iptables MASQUERADE 10.0.0.0/8 → eth0"]
+      end
+
+      Front["frontend 10.0.2.0/24<br/>(future edge nodes)"]
+      Back["backend 10.0.1.0/24<br/>(future workload nodes)"]
+    end
+  end
+
+  Postinstall["hcloud-postinstall<br/>(out-of-band CronJob)"]
+
+  User -->|resolves FQDN| DNS
+  DNS -->|A → IPv4| User
+  User -->|HTTPS :443| Gateway
+  LE <-->|HTTP-01 via Traefik| Gateway
+
+  ISO -. first boot .-> Gateway
+  Postinstall -. detach-iso + poweron .-> Gateway
+
+  Front -. default route .-> Gateway
+  Back  -. default route .-> Gateway
+  Gateway -->|MASQUERADE| Internet
 ```
 
-The LoadBalancer is provisioned by the **Hetzner Cloud Controller Manager**
-(HCCM) at runtime from a `Service type=LoadBalancer` — not by OpenTofu.
-That is why this repo has no `hcloud_load_balancer` resource: the cluster
-owns its own LBs once HCCM is up.
+**What the diagram shows.** The platform is a single Kairos VM that wears
+every hat: k3s control plane, ingress edge (Traefik on hostPort 80/443,
+no `Service type=LoadBalancer` involved), TLS termination
+(cert-manager + Let's Encrypt HTTP-01), self-hosted VPN coordination
+(Netbird server, dashboard, embedded Dex IdP), **and** the NAT default
+gateway for the private network so future workers in `frontend` /
+`backend` subnets reach the internet through it.
+
+DNS lives in the sibling `ovh-mgmt` project on different credentials so a
+botched zone change can't break compute, and vice versa.
+
+The Kairos ISO is uploaded once. `hcloud-postinstall` is the out-of-band
+helper that runs *after* `tofu apply` to detach the installer ISO and
+power the VM back on — without it the VM stays off forever.
 
 ## Background
 
