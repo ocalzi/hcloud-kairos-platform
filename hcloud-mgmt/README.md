@@ -1,8 +1,12 @@
 # hcloud-mgmt
 
 OpenTofu project that lays down the **shared infrastructure** for the Kairos
-platform: private network, subnets, SSH key, gateway node, and the modules
-used to spin up workers and load balancers.
+platform: private network, subnets, SSH key, gateway node, and the module
+used to spin up workers.
+
+LoadBalancer Services are provisioned at runtime by HCCM (the Hetzner cloud
+controller manager) from inside the cluster — not by OpenTofu. There is no
+LB resource here on purpose.
 
 ## What it provisions
 
@@ -13,8 +17,8 @@ used to spin up workers and load balancers.
 | `hcloud_ssh_key`      | Rescue-console fallback key.                                               |
 | `module.gateway`      | Single Kairos VM in `management` — NAT, k3s control plane, ingress edge.   |
 
-The modules in `modules/` are designed to be re-used for additional
-nodes/LBs in sibling projects.
+The modules in `modules/` are designed to be re-used for additional nodes
+in sibling projects.
 
 ## Two-phase bootstrap
 
@@ -76,7 +80,6 @@ project to bring the gateway online.
 | `templates/gateway-cloud-init.*`  | Kairos cloud-init for the gateway.                         |
 | `modules/hetzner-network/`        | `hcloud_network` + per-subnet `hcloud_network_subnet`.     |
 | `modules/hetzner-server/`         | `hcloud_server` with ISO boot + private network attach.    |
-| `modules/hetzner-lb/`             | `hcloud_load_balancer` + private network attach.           |
 
 ## Why OpenTofu, not Terraform
 

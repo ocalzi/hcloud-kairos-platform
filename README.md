@@ -16,7 +16,7 @@ you can read end-to-end in an evening and adapt.
 
 ```
 hcloud-kairos-platform/
-├── hcloud-mgmt/         # OpenTofu: network, gateway, LBs, workers
+├── hcloud-mgmt/         # OpenTofu: network, gateway, workers
 ├── ovh-mgmt/            # OpenTofu: public DNS record for the gateway
 └── hcloud-postinstall/  # Helper image: detach the Kairos installer ISO
                          # and power VMs back on after first install.
@@ -26,6 +26,37 @@ Three components, all small. Each ships with its own README explaining what
 it does and how to run it. Bootstrap order is `hcloud-mgmt` →
 `hcloud-postinstall` → `ovh-mgmt` (the DNS record consumes the gateway IP
 that `hcloud-mgmt` produces).
+
+## Architecture at a glance
+
+```mermaid
+flowchart TB
+  User([User])
+
+  subgraph Hetzner["Hetzner Cloud project"]
+    direction TB
+
+    subgraph Net["hcloud_network 10.0.0.0/8"]
+      direction TB
+      Gateway["Gateway VM<br/>Kairos + k3s server<br/>10.0.3.2 (management)"]
+      Workers["Worker VMs<br/>Kairos + k3s agent<br/>(backend / frontend subnets)"]
+      AppLB["HCCM-managed LB<br/>Service type=LoadBalancer<br/>HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP=true"]
+    end
+
+    ISO[("Kairos ISO<br/>custom, uploaded")]
+  end
+
+  User -->|HTTPS| AppLB
+  AppLB -->|private IP :NodePort| Gateway
+  AppLB -->|private IP :NodePort| Workers
+  ISO -.first boot.-> Gateway
+  ISO -.first boot.-> Workers
+```
+
+The LoadBalancer is provisioned by the **Hetzner Cloud Controller Manager**
+(HCCM) at runtime from a `Service type=LoadBalancer` — not by OpenTofu.
+That is why this repo has no `hcloud_load_balancer` resource: the cluster
+owns its own LBs once HCCM is up.
 
 ## Background
 
