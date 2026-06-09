@@ -1,0 +1,33 @@
+# Run `pre-commit install` once after cloning to wire the hooks into
+# .git/hooks/pre-commit. CI does the same checks server-side
+# (terraform-validate + shellcheck pipelines), so this file is purely
+# a developer-loop convenience — catch fmt drift before the push, not
+# after the CI run.
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+      - id: check-yaml
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+
+  # Local hook because the upstream pre-commit-terraform repo calls
+  # `terraform fmt`; this repo runs OpenTofu, so we invoke `tofu fmt`
+  # directly. `-check -diff` prints the would-be changes and exits
+  # non-zero on drift, which is exactly the pre-commit contract.
+  - repo: local
+    hooks:
+      - id: tofu-fmt
+        name: tofu fmt
+        entry: tofu fmt -check -recursive -diff
+        language: system
+        files: \.tf$
+        pass_filenames: false
