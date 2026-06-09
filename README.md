@@ -94,6 +94,60 @@ The Kairos ISO is uploaded once. `hcloud-postinstall` is the out-of-band
 helper that runs *after* `tofu apply` to detach the installer ISO and
 power the VM back on — without it the VM stays off forever.
 
+## Orchestration: how a fresh apply ships a working cluster
+
+The boot-and-install dance is split across **three actors**: OpenTofu
+(declarative infrastructure), the Kairos ISO (installer that runs on
+the VM itself), and `hcloud-postinstall` (post-job that bridges the
+gap between "VM installed itself and powered off" and "VM running k3s").
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Dev as Operator / CI
+    participant Tofu as OpenTofu
+    participant HCloud as Hetzner Cloud API
+    participant VM as Gateway VM
+    participant Post as hcloud-postinstall
+    participant OVH as OVH API
+    participant LE as Let's Encrypt
+
+    Dev->>Tofu: tofu apply (hcloud-mgmt)
+    Tofu->>HCloud: create network + server<br/>(image=debian-13, iso=kairos)
+    HCloud-->>VM: power on, boot from Kairos ISO
+    VM->>VM: auto-installer writes Kairos to disk
+    VM->>HCloud: power off (ISO still attached)
+
+    Note over Post: post-job stage<br/>CI step, K8s CronJob, or one-shot
+    Dev->>Post: run hcloud-postinstall container<br/>(HCLOUD_TOKEN in env)
+    Post->>HCloud: list servers; filter status=off + iso name/desc ~= kairos
+    Post->>HCloud: detach-iso + poweron
+    HCloud-->>VM: power on, boot from disk
+    VM->>VM: k3s + Traefik + cert-manager + Netbird bootstrap
+
+    Dev->>Tofu: tofu apply (ovh-mgmt)
+    Tofu->>OVH: A record netbird_domain -> gateway public IPv4
+
+    Note over LE,VM: cert-manager solves HTTP-01<br/>via Traefik on :80
+    LE-->>VM: issue + renew certificate
+```
+
+The pieces *can* run in the same pipeline (one CI job: `tofu apply` →
+`hcloud-postinstall` → `tofu apply ovh-mgmt`) or be split across forges
+— the `hcloud-postinstall` container is shipped to GHCR/Quay precisely
+so any forge with a Hetzner API token can invoke it as a post-job
+without local tooling.
+
+**Why post-job and not a Tofu provisioner.**
+A `null_resource` + `local-exec` would couple ISO detach to the
+OpenTofu lifecycle, which means a `tofu destroy` would also try to
+unwind the detach (no-op, but it adds plan noise) and a `tofu apply`
+that already-completed-once would skip the detach on subsequent runs
+because the resource is "already created." Splitting the detach into
+a separate idempotent container lets it run on a `CronJob` indefinitely,
+catching every freshly-installed Kairos VM the next time a worker
+is added — without OpenTofu state ever needing to know about it.
+
 ## Background
 
 - Blog series: https://portefolio.calzi.eu/blog/hetzner-hccm-kairos
