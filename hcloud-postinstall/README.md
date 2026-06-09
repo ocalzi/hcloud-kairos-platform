@@ -47,6 +47,21 @@ Three CI files ship in this directory — pick the one your forge uses:
 Every pipeline runs `shellcheck` on `post-install.sh` first, then builds and
 pushes the image. The script is held to zero shellcheck warnings.
 
+## Build it locally
+
+The image is described by a `Containerfile` (the OCI-spec name for what
+Docker historically called `Dockerfile`). Any OCI-compatible builder works:
+
+```sh
+# Podman / Buildah
+podman build -t hcloud-postinstall -f Containerfile .
+
+# Docker (auto-detects Containerfile in current dir, or pass -f)
+docker build -t hcloud-postinstall -f Containerfile .
+```
+
+The `Containerfile` name is used on purpose to keep the build vendor-neutral.
+
 ## Why a container, not a one-shot script
 
 This same job needs to run from three different forges (Gitea, GitHub Actions,
