@@ -15,18 +15,33 @@ independently, and typically rotate at very different cadences.
 ## Prerequisites
 
 - **OpenTofu ≥ 1.6**
-- OVH account with API credentials. Create them at
-  https://eu.api.ovh.com/createToken/ and export:
-
-  ```sh
-  export OVH_ENDPOINT=ovh-eu
-  export OVH_APPLICATION_KEY=...
-  export OVH_APPLICATION_SECRET=...
-  export OVH_CONSUMER_KEY=...
-  ```
+- OVH account with API credentials. Generate the trio at
+  https://eu.api.ovh.com/createToken/.
 
   Minimum required permissions on the consumer key:
   `GET/POST/PUT/DELETE /domain/zone/<your-zone>/*`
+
+  The provider accepts credentials from **either**:
+
+  - Terraform variables in your gitignored `terraform.tfvars` —
+    convenient for local applies, keeps everything in one place:
+
+    ```hcl
+    ovh_application_key    = "..."
+    ovh_application_secret = "..."
+    ovh_consumer_key       = "..."
+    ```
+
+  - Environment variables — preferred in CI:
+
+    ```sh
+    export OVH_ENDPOINT=ovh-eu
+    export OVH_APPLICATION_KEY=...
+    export OVH_APPLICATION_SECRET=...
+    export OVH_CONSUMER_KEY=...
+    ```
+
+  TF variables win when both are set.
 
 - A DNS zone already managed by OVH (apex domain like `calzi.eu`).
 - The gateway's public IPv4 — output of `hcloud-mgmt` after `tofu apply`:
@@ -73,7 +88,7 @@ dig +short showcase.calzi.eu
 | Path                          | Role                                              |
 |-------------------------------|---------------------------------------------------|
 | `versions.tf`                 | Provider + OpenTofu version pins.                 |
-| `main.tf`                     | OVH provider config (endpoint from variable).     |
+| `main.tf`                     | OVH provider config (endpoint + credentials from variables). |
 | `variables.tf`                | Input variables.                                  |
-| `gateway-record.tf`           | The A record + zone refresh.                      |
+| `gateway-record.tf`           | The A record.                                     |
 | `outputs.tf`                  | FQDN + resolved target for downstream consumers.  |

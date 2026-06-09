@@ -10,12 +10,13 @@ LB resource here on purpose.
 
 ## What it provisions
 
-| Resource              | Purpose                                                                    |
-|-----------------------|----------------------------------------------------------------------------|
-| `hcloud_network`      | Top-level `/8` private network (`net01`).                                  |
-| `hcloud_network_subnet` x3 | `backend` / `frontend` / `management` `/24`s.                          |
-| `hcloud_ssh_key`      | Rescue-console fallback key.                                               |
-| `module.gateway`      | Single Kairos VM in `management` — NAT, k3s control plane, ingress edge.   |
+| Resource                       | Purpose                                                                    |
+|--------------------------------|----------------------------------------------------------------------------|
+| `hcloud_network`               | Top-level `/8` private network (`net01`).                                  |
+| `hcloud_network_subnet` x3     | `backend` / `frontend` / `management` `/24`s.                              |
+| `hcloud_ssh_key`               | Rescue-console fallback key.                                               |
+| `module.gateway`               | Single Kairos VM in `management` — NAT, k3s control plane, ingress edge.   |
+| `hcloud_firewall` + attachment | 80/443 open to world; 22/6443 restricted to `var.admin_cidrs`.             |
 
 The modules in `modules/` are designed to be re-used for additional nodes
 in sibling projects.
@@ -76,6 +77,7 @@ project to bring the gateway online.
 | `outputs.tf`                      | Public/private IPs + network ID for downstream projects.   |
 | `network.tf`                      | The `module.network` call (subnet split lives here).       |
 | `gateway.tf`                      | Gateway node + Kairos cloud-init template render.          |
+| `firewall.tf`                     | `hcloud_firewall` + attachment for the gateway.            |
 | `servers.tf`                      | Placeholder for worker nodes — documented two-phase boot.  |
 | `templates/gateway-cloud-init.*`  | Kairos cloud-init for the gateway.                         |
 | `modules/hetzner-network/`        | `hcloud_network` + per-subnet `hcloud_network_subnet`.     |

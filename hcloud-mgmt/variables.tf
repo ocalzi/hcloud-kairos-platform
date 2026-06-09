@@ -59,3 +59,12 @@ variable "netbird_encryption_key" {
   type        = string
   sensitive   = true
 }
+
+variable "admin_cidrs" {
+  description = "CIDRs allowed to reach SSH (22) and the k3s API (6443) on the gateway. Discover your current public IPv4 with `curl -4 ifconfig.me`."
+  type        = list(string)
+  validation {
+    condition     = length(var.admin_cidrs) > 0
+    error_message = "admin_cidrs must contain at least one CIDR — leaving SSH/k3s API world-open is not allowed."
+  }
+}

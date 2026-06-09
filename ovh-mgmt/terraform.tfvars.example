@@ -2,4 +2,10 @@ zone         = "calzi.eu"
 subdomain    = "showcase"
 gateway_ipv4 = "<PLACEHOLDER-from-hcloud-mgmt-output>"
 ttl          = 60
+
 ovh_endpoint = "ovh-eu"
+# Generate the three values at https://eu.api.ovh.com/createToken/
+# Scope the consumer key to: GET/POST/PUT/DELETE /domain/zone/<your-zone>/*
+ovh_application_key    = "<PLACEHOLDER-application-key>"
+ovh_application_secret = "<PLACEHOLDER-application-secret>"
+ovh_consumer_key       = "<PLACEHOLDER-consumer-key>"

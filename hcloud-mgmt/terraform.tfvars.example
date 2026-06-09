@@ -24,3 +24,7 @@ netbird_domain = "showcase.example.com"
 
 # 32-byte base64 — generate with: openssl rand -base64 32
 netbird_encryption_key = "<PLACEHOLDER-32-byte-base64>"
+
+# CIDRs allowed to reach SSH and the k3s API on the gateway.
+# Get your current public IPv4: curl -4 ifconfig.me
+admin_cidrs = ["203.0.113.42/32"]

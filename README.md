@@ -40,6 +40,7 @@ that `hcloud-mgmt` produces).
 ```mermaid
 flowchart LR
   User([User / Netbird client])
+  Admin([Admin laptop<br/>admin_cidrs])
   LE([Let's Encrypt ACME])
   Internet([Public internet])
 
@@ -55,8 +56,10 @@ flowchart LR
     subgraph Net["hcloud_network net01 — 10.0.0.0/8"]
       direction TB
 
-      subgraph Mgmt["management 10.0.3.0/24"]
-        Gateway["Gateway VM (cx23) — 10.0.3.2 + public IPv4<br/>━━━━━━━━━━━━━━━━━━<br/>Kairos OS · k3s --cluster-init · Traefik (hostPort 80/443)<br/>cert-manager + ClusterIssuer · Netbird server / dashboard / Dex IdP<br/>iptables MASQUERADE 10.0.0.0/8 → eth0"]
+      subgraph FW["hcloud_firewall — :80/:443 world · :22/:6443 admin_cidrs"]
+        subgraph Mgmt["management 10.0.3.0/24"]
+          Gateway["Gateway VM (cx23) — 10.0.3.2 + public IPv4<br/>━━━━━━━━━━━━━━━━━━<br/>Kairos OS · k3s --cluster-init · Traefik (hostPort 80/443)<br/>cert-manager + ClusterIssuer · Netbird server / dashboard / Dex IdP<br/>iptables MASQUERADE 10.0.0.0/8 → eth0"]
+        end
       end
 
       Front["frontend 10.0.2.0/24<br/>(future edge nodes)"]
@@ -69,6 +72,7 @@ flowchart LR
   User -->|resolves FQDN| DNS
   DNS -->|A → IPv4| User
   User -->|HTTPS :443| Gateway
+  Admin -.->|SSH :22 / k3s API :6443| Gateway
   LE <-->|HTTP-01 via Traefik| Gateway
 
   ISO -. first boot .-> Gateway
@@ -86,6 +90,12 @@ no `Service type=LoadBalancer` involved), TLS termination
 (Netbird server, dashboard, embedded Dex IdP), **and** the NAT default
 gateway for the private network so future workers in `frontend` /
 `backend` subnets reach the internet through it.
+
+A `hcloud_firewall` sits in front of the VM: 80 and 443 are open to the
+world (Traefik serves HTTPS and cert-manager solves the ACME HTTP-01
+challenge over the same `:80`), while SSH (22) and the k3s API (6443)
+are restricted to `var.admin_cidrs` — typically your laptop's `/32`. A
+leaked kubeconfig or password cannot then be exercised from a random IP.
 
 DNS lives in the sibling `ovh-mgmt` project on different credentials so a
 botched zone change can't break compute, and vice versa.

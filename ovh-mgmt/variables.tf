@@ -4,6 +4,27 @@ variable "ovh_endpoint" {
   default     = "ovh-eu"
 }
 
+variable "ovh_application_key" {
+  description = "OVH API application key (from https://eu.api.ovh.com/createToken/). Leave empty to fall back to OVH_APPLICATION_KEY env var."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "ovh_application_secret" {
+  description = "OVH API application secret. Leave empty to fall back to OVH_APPLICATION_SECRET env var."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "ovh_consumer_key" {
+  description = "OVH API consumer key (scoped to the zone). Leave empty to fall back to OVH_CONSUMER_KEY env var."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
 variable "zone" {
   description = "OVH DNS zone (the apex domain) the showcase publishes records into."
   type        = string
