@@ -61,3 +61,11 @@ jobs:
           image: ${{ steps.buildah.outputs.image }}
           tags: ${{ steps.buildah.outputs.tags }}
           registry: quay.io/ocalzi
+
+      # Cosign signing is *not* configured for Gitea Actions: Sigstore's public
+      # good instance does not (as of 2026-01) trust Gitea's OIDC issuer for
+      # keyless signing. To add it, generate a long-lived cosign key pair
+      # (`cosign generate-key-pair`) and inject COSIGN_PRIVATE_KEY +
+      # COSIGN_PASSWORD as Gitea secrets, then add a `cosign sign --key
+      # env://COSIGN_PRIVATE_KEY <ref>` step here. The GitHub workflow does
+      # keyless signing — see .github/workflows/postinstall-build.yml.

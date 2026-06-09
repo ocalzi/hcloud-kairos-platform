@@ -23,6 +23,27 @@ The container runs as **UID 10001 (non-root)** out of the box — no
 `--user` override needed, and it satisfies Kubernetes' `restricted`
 PodSecurity profile without any extra `securityContext` plumbing.
 
+The image pushed to GHCR is **cosign-signed (keyless via Sigstore OIDC)**
+and ships an SPDX-JSON SBOM as a cosign attestation. Verify before pulling
+in any sensitive pipeline:
+
+```sh
+# 1. Signature
+cosign verify ghcr.io/ocalzi/hcloud-postinstall:latest \
+  --certificate-identity-regexp='https://github.com/ocalzi/hcloud-kairos-platform/.*' \
+  --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+
+# 2. SBOM attestation (SPDX JSON predicate)
+cosign verify-attestation ghcr.io/ocalzi/hcloud-postinstall:latest \
+  --type spdxjson \
+  --certificate-identity-regexp='https://github.com/ocalzi/hcloud-kairos-platform/.*' \
+  --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+  | jq -r .payload | base64 -d | jq .predicate
+```
+
+The Quay and GitLab images are not signed yet — see CI section for the
+rationale and the path to enabling key-based signing on those forges.
+
 ```sh
 docker run --rm \
   -e HCLOUD_TOKEN="$HCLOUD_TOKEN" \

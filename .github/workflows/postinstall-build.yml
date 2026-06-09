@@ -8,6 +8,7 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write   # required for cosign keyless signing via Sigstore OIDC
 
 jobs:
   shellcheck:
@@ -60,8 +61,36 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push to GHCR
+        id: push
         uses: redhat-actions/push-to-registry@v2
         with:
           image: ${{ steps.buildah.outputs.image }}
           tags: ${{ steps.buildah.outputs.tags }}
           registry: ghcr.io/ocalzi
+
+      # ---------------- Sigstore: sign + SBOM-attest ----------------------
+      # Keyless: cosign exchanges the GH Actions OIDC token for a short-lived
+      # Sigstore certificate, signs by digest (immutable), and publishes the
+      # signature to the public Rekor transparency log. No long-lived secrets.
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: "v2.2.4"
+
+      - name: Install syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      - name: Sign image (cosign keyless)
+        env:
+          DIGEST_REF: ghcr.io/ocalzi/hcloud-postinstall@${{ steps.push.outputs.digest }}
+        run: cosign sign --yes "$DIGEST_REF"
+
+      - name: Generate SBOM + cosign attest
+        env:
+          DIGEST_REF: ghcr.io/ocalzi/hcloud-postinstall@${{ steps.push.outputs.digest }}
+        run: |
+          syft "$DIGEST_REF" -o spdx-json > sbom.spdx.json
+          cosign attest --yes \
+            --predicate sbom.spdx.json \
+            --type spdxjson \
+            "$DIGEST_REF"
