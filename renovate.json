@@ -1,0 +1,58 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    ":dependencyDashboard",
+    ":timezone(Europe/Paris)"
+  ],
+  "schedule": [
+    "before 9am on monday"
+  ],
+  "labels": [
+    "renovate",
+    "dependencies"
+  ],
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 6,
+  "rangeStrategy": "bump",
+  "packageRules": [
+    {
+      "description": "Group all GitHub Action bumps into one PR so reviews stay focused on infra rather than release notes.",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions",
+      "automerge": false
+    },
+    {
+      "description": "OpenTofu provider versions live in versions.tf — bump them as patch/minor automatically since the Terraform Registry already enforces constraint syntax.",
+      "matchManagers": ["terraform"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "automerge": false
+    },
+    {
+      "description": "Alpine base + hcloud CLI: bump pinned digest and version together. Major bumps of either need eyes (CVE notes, behaviour change).",
+      "matchDatasources": ["docker", "github-releases"],
+      "matchPackageNames": [
+        "alpine",
+        "hetznercloud/cli"
+      ],
+      "groupName": "hcloud-postinstall base + cli"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Pin updates for the hcloud CLI version baked into the Containerfile via ARG HCLOUD_CLI_VERSION=x.y.z.",
+      "fileMatch": [
+        "(^|/)Containerfile$",
+        "(^|/)Dockerfile$"
+      ],
+      "matchStrings": [
+        "ARG HCLOUD_CLI_VERSION=(?<currentValue>\\d+\\.\\d+\\.\\d+)"
+      ],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "hetznercloud/cli",
+      "extractVersionTemplate": "^v(?<version>.+)$"
+    }
+  ]
+}
