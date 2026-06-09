@@ -47,6 +47,18 @@ Three CI files ship in this directory — pick the one your forge uses:
 Every pipeline runs `shellcheck` on `post-install.sh` first, then builds and
 pushes the image. The script is held to zero shellcheck warnings.
 
+All three pipelines build with **buildah** rather than `docker build`:
+
+- No Docker daemon, no `docker:dind`, no `docker/build-push-action`.
+- Image format is forced to OCI (`--oci` / `BUILDAH_FORMAT=oci`).
+- GitLab uses `quay.io/buildah/stable` directly. GitHub and Gitea use
+  `redhat-actions/buildah-build` + `redhat-actions/push-to-registry` with
+  `redhat-actions/podman-login` for registry auth.
+
+The result is a fully vendor-neutral image-build chain: the only Docker Inc
+software in the loop is the upstream BuildKit code that buildah itself
+optionally calls — and none of it runs as a privileged daemon.
+
 ## Build it locally
 
 The image is described by a `Containerfile` (the OCI-spec name for what

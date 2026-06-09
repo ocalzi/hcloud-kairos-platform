@@ -24,16 +24,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Quay
-        uses: docker/login-action@v3
-        with:
-          registry: quay.io
-          username: ${{ secrets.QUAY_USERNAME }}
-          password: ${{ secrets.QUAY_PASSWORD }}
-
       - name: Compute tags
         id: meta
         uses: docker/metadata-action@v5
@@ -44,11 +34,30 @@ jobs:
             type=semver,pattern={{version}}
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
+      # Vendor-neutral build: buildah produces an OCI-format image. Pushed
+      # via podman-login — Quay.io is itself part of the Red Hat / OCI
+      # ecosystem, so the whole chain stays daemonless and Docker-free.
+      - name: Build image
+        id: buildah
+        uses: redhat-actions/buildah-build@v2
         with:
           context: ./hcloud-postinstall
-          file: ./hcloud-postinstall/Containerfile
-          push: true
+          containerfiles: ./hcloud-postinstall/Containerfile
+          image: hcloud-postinstall
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          oci: true
+
+      - name: Log in to Quay
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: quay.io
+          username: ${{ secrets.QUAY_USERNAME }}
+          password: ${{ secrets.QUAY_PASSWORD }}
+
+      - name: Push to Quay
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.buildah.outputs.image }}
+          tags: ${{ steps.buildah.outputs.tags }}
+          registry: quay.io/ocalzi
