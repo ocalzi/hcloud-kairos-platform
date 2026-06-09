@@ -36,13 +36,16 @@ docker run --rm \
 
 ## CI
 
-Three CI files ship in this directory — pick the one your forge uses:
+CI lives at the **repo root** (one config per forge), not in this
+subdirectory, because every supported forge only auto-discovers pipelines
+from its own conventional root path (`.github/workflows/`,
+`.gitea/workflows/`, `/.gitlab-ci.yml`):
 
-| File                                | Use it on        | Pushes to                                |
-|-------------------------------------|------------------|------------------------------------------|
-| `.gitlab-ci.yml`                    | GitLab CI        | `$CI_REGISTRY_IMAGE` (project registry)  |
-| `.github/workflows/build.yml`       | GitHub Actions   | `ghcr.io/ocalzi/hcloud-postinstall`      |
-| `.gitea/workflows/build.yml`        | Gitea Actions    | `quay.io/ocalzi/hcloud-postinstall`      |
+| Config                                      | Forge            | Pushes to                                |
+|---------------------------------------------|------------------|------------------------------------------|
+| `/.gitlab-ci.yml`                           | GitLab CI        | `$CI_REGISTRY_IMAGE/hcloud-postinstall`  |
+| `/.github/workflows/postinstall-build.yml`  | GitHub Actions   | `ghcr.io/ocalzi/hcloud-postinstall`      |
+| `/.gitea/workflows/postinstall-build.yml`   | Gitea Actions    | `quay.io/ocalzi/hcloud-postinstall`      |
 
 Every pipeline runs `shellcheck` on `post-install.sh` first, then builds and
 pushes the image. The script is held to zero shellcheck warnings.

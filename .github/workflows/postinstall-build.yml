@@ -1,4 +1,4 @@
-name: build
+name: postinstall-build
 
 on:
   push:
