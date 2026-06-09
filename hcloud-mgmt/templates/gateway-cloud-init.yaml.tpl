@@ -15,7 +15,9 @@ users:
     ssh_authorized_keys: ${ssh_authorized_keys}
 
 # Default k3s — traefik + flannel + kube-proxy stay enabled (light footprint, single-purpose box).
-# servicelb disabled because Netbird is fronted by an external Hetzner LB.
+# servicelb (klipper-lb) disabled because Traefik already owns hostPort 80/443
+# directly on the node. Leaving klipper-lb enabled would have it spawn a
+# DaemonSet that races for the same host ports and fails one of the two.
 k3s:
   enabled: true
   args:
@@ -44,9 +46,10 @@ stages:
             iptables -I FORWARD -d ${private_cidr} -j ACCEPT
 
 write_files:
-  # Traefik: bind directly to host:80/443 via hostPort.
-  # External Hetzner LB forwards 80/443 → gateway host:80/443 → traefik.
-  # No klipper-lb (servicelb disabled to avoid double-LB).
+  # Traefik: bind directly to host:80/443 via hostPort on the gateway's
+  # public IPv4. No upstream LoadBalancer — single-node showcase, the public
+  # IP IS the ingress endpoint. cert-manager solves HTTP-01 over the same
+  # :80 port. service.enabled=false skips the unused ClusterIP Service.
   - path: /var/lib/rancher/k3s/server/manifests/traefik-config.yaml
     permissions: "0600"
     owner: "root"
