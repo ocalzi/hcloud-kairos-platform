@@ -3,7 +3,11 @@
 Smallest possible production-grade Kubernetes on Hetzner Cloud — minimal cost,
 fully integrated with Hetzner primitives.
 
-Stack: **Kairos** + **k3s** + **HCCM** + **Cilium** + **cert-manager** + **Gateway API**.
+Stack as shipped: **Kairos** + **k3s** + **Traefik** + **cert-manager** + **Netbird**.
+The HCCM / Cilium / Hetzner CSI / Gateway API upgrade path is documented
+below (see *Alternative: split ingress and egress with HCCM*) but
+intentionally not in the base showcase — each one adds operational surface
+that a single-VM demo doesn't earn.
 
 Author: **Olivier Calzi** — Golden Kubestronaut
 ([github.com/ocalzi](https://github.com/ocalzi))
@@ -97,13 +101,90 @@ power the VM back on — without it the VM stays off forever.
 
 Most "k8s on a single cloud" tutorials either:
 - pull in a managed control plane (defeats the cost angle), or
-- skip the cloud-provider integration (no LoadBalancer Services, no volume
-  provisioning, no node IP coherence).
+- skip the cloud-provider integration entirely (no LoadBalancer Services,
+  no volume provisioning, no coherent node/IP story when you grow past
+  one VM).
 
-This repo wires Kairos + k3s into Hetzner the way a managed cluster would
-expect: HCCM for node/loadbalancer reconciliation, the Hetzner CSI driver for
-PVs, Cilium for the dataplane, and Gateway API on top for ingress. The result
-is a cluster that costs a coffee a day and behaves like the bigger ones.
+This repo takes a third path: a **single Kairos VM that already behaves
+like a small platform** — k3s with Traefik on hostPort 80/443, cert-manager
+issuing real Let's Encrypt certs, Netbird as a self-hosted control plane,
+and iptables MASQUERADE so future workers in private subnets reach the
+internet through it. Costs a coffee a day, no managed anything.
+
+When you outgrow the single-VM shape, the natural next step is the
+HCCM / CSI / Cilium / Gateway API combo that managed clusters give you for
+free. The next section describes the first half of that path —
+splitting the gateway's ingress and egress IPs with an HCCM-managed
+LoadBalancer.
+
+## Alternative: split ingress and egress with HCCM
+
+The single-VM showcase makes the gateway's public IPv4 wear two hats at
+once:
+
+- **Inbound** — HTTPS for Netbird (dashboard + management) lands on `:443`.
+- **Outbound** — NAT MASQUERADE rewrites every packet leaving the private
+  network to use the same IPv4 as source.
+
+Fine for a one-machine demo. Not the shape you want for anything
+multi-node, anything multi-tenant, or anything that needs an ingress IP
+that survives a gateway VM swap.
+
+The natural upgrade is to install
+[Hetzner Cloud Controller Manager (HCCM)](https://github.com/hetznercloud/hcloud-cloud-controller-manager)
+into k3s and split the two flows onto two distinct Hetzner public IPs:
+
+```mermaid
+flowchart LR
+  User([User / Netbird client])
+  Internet([Public internet])
+
+  subgraph Hetzner["Hetzner Cloud project"]
+    LB["hcloud_load_balancer<br/>(HCCM-managed)<br/>public IPv4 #1<br/>ingress only"]
+
+    subgraph Net["private network"]
+      Gateway["Gateway VM<br/>public IPv4 #2 (egress only)<br/>━━━━━━━━━━━━<br/>k3s + Traefik (Service type=LoadBalancer)<br/>cert-manager + Netbird<br/>iptables MASQUERADE → IPv4 #2"]
+      Workers["future workers<br/>(backend / frontend subnets)"]
+    end
+  end
+
+  User -->|HTTPS :443| LB
+  LB -->|private IP :NodePort| Gateway
+  Workers -. default route .-> Gateway
+  Gateway -->|MASQUERADE| Internet
+```
+
+What changes:
+
+- **Ingress IP becomes the LB's IPv4.** OVH A record points there, not at
+  the gateway VM. The LB lives independently of the VM, so replacing the
+  gateway no longer rotates the public DNS target — clients keep
+  resolving to the same IP across blue/green VM swaps.
+- **Egress IP stays the gateway VM's IPv4.** Upstream allow-lists (e.g.
+  third-party APIs that whitelist source IPs) can pin against it without
+  fearing it'll move every time the LB reconciles.
+- **Multi-replica Netbird becomes possible.** HCCM watches Node objects
+  and registers each healthy node as a backend; failed ones get pulled
+  out automatically. The current hostPort design pins everything to one
+  node.
+- **Traefik moves off `hostPort`** to a regular
+  `Service type=LoadBalancer`. HCCM creates the Hetzner LB, sets the
+  Service's `EXTERNAL-IP`, and points the LB at every node's NodePort.
+- **HCCM needs `HCLOUD_LOAD_BALANCERS_USE_PRIVATE_IP=true`** when the
+  cluster lives on a private network — without it HCCM tries to register
+  backends on the node's public IPv4, which both defeats the
+  egress-isolation point and breaks entirely if you firewalled the public
+  side of the nodes.
+- **`--disable=servicelb` can stay or go.** With Traefik off hostPort
+  there's nothing for klipper-lb to fight over, so leaving servicelb
+  enabled would just mean two LB controllers (klipper + HCCM) react to
+  the same Service. Cleaner to keep it disabled so HCCM is the single
+  owner.
+
+Cost: ~**€5/month per Hetzner LB** plus one more controller to babysit.
+For a showcase that's not worth it; for a real platform it usually is.
+This repo deliberately leaves it to the reader as the obvious next step
+rather than shipping a half-baked HCCM Helm install in the base config.
 
 ## AI-assisted authorship
 

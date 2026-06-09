@@ -9,6 +9,6 @@ output "gateway_private_ip" {
 }
 
 output "network_id" {
-  description = "ID of the hcloud_network — feed downstream projects (workload Terraform, LB modules)."
+  description = "ID of the hcloud_network — feed downstream projects (workload Terraform, or HCCM if you later add it for cluster-managed LoadBalancers)."
   value       = module.network.network_id
 }

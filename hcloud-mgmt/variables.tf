@@ -5,7 +5,7 @@ variable "hcloud_token" {
 }
 
 variable "hetzner_location" {
-  description = "Hetzner location for all servers and load balancers (e.g. fsn1, nbg1, hel1)."
+  description = "Hetzner location for all servers in this project (e.g. fsn1, nbg1, hel1). Any LoadBalancer that HCCM later provisions should land in the same location to keep latency to the backend nodes low."
   type        = string
   default     = "fsn1"
 }

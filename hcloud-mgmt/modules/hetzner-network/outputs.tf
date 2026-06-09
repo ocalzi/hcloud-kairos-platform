@@ -1,5 +1,5 @@
 output "network_id" {
-  description = "ID of the created hcloud_network — feed to servers and load balancers."
+  description = "ID of the created hcloud_network — feed to hcloud_server, hcloud_server_network, and (if you add HCCM) hcloud_load_balancer_network attachments."
   value       = hcloud_network.this.id
 }
 
