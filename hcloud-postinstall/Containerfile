@@ -1,12 +1,23 @@
-FROM alpine:3.19
+# alpine:3.19 pinned by content digest so rebuilds are reproducible and
+# upstream can't silently swap the tag underneath us. Renovate watches both
+# the tag and the @sha256 so the bump lands as a single reviewable PR.
+FROM alpine:3.19@sha256:b58899f069c47216f6002a6850143dc6fae0d35eb8b0df9300bbe6327b9c2171
 
 ARG HCLOUD_CLI_VERSION=1.51.0
 
 # bash for `set -euo pipefail`, jq for filtering hcloud's JSON output, curl
 # to pull the CLI binary at build time.
+#
+# The tarball is verified against the upstream checksums.txt shipped on the
+# same GitHub Release: if either file is tampered the sha256sum -c fails
+# and `set -e` (implicit under apk add && ...) aborts the build.
 RUN apk add --no-cache curl jq bash && \
-    curl -sSL "https://github.com/hetznercloud/cli/releases/download/v${HCLOUD_CLI_VERSION}/hcloud-linux-amd64.tar.gz" \
-    | tar xz -C /usr/local/bin hcloud
+    cd /tmp && \
+    curl -fsSL -O "https://github.com/hetznercloud/cli/releases/download/v${HCLOUD_CLI_VERSION}/hcloud-linux-amd64.tar.gz" && \
+    curl -fsSL -O "https://github.com/hetznercloud/cli/releases/download/v${HCLOUD_CLI_VERSION}/checksums.txt" && \
+    grep ' hcloud-linux-amd64.tar.gz$' checksums.txt | sha256sum -c - && \
+    tar xzf hcloud-linux-amd64.tar.gz -C /usr/local/bin hcloud && \
+    rm -f hcloud-linux-amd64.tar.gz checksums.txt
 
 COPY post-install.sh /usr/local/bin/post-install.sh
 RUN chmod +x /usr/local/bin/post-install.sh
