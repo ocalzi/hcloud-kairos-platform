@@ -1,0 +1,37 @@
+name: terraform-validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Mirror of the GitHub workflow — Gitea Actions speaks the same syntax,
+# so the only divergence is the runner image and the marketplace-action
+# availability (opentofu/setup-opentofu works on both at this version).
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - hcloud-mgmt
+          - ovh-mgmt
+    defaults:
+      run:
+        working-directory: ${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.6.0"
+
+      - name: tofu fmt (check)
+        run: tofu fmt -check -recursive
+
+      - name: tofu init (no backend)
+        run: tofu init -backend=false
+
+      - name: tofu validate
+        run: tofu validate

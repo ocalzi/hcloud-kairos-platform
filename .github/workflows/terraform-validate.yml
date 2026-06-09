@@ -1,0 +1,40 @@
+name: terraform-validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# fmt + validate run against every OpenTofu subproject in the repo.
+# fmt drift fails the build — CI is the only enforcement we get on a repo
+# with no pre-commit hook.
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project:
+          - hcloud-mgmt
+          - ovh-mgmt
+    defaults:
+      run:
+        working-directory: ${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.6.0"
+
+      - name: tofu fmt (check)
+        run: tofu fmt -check -recursive
+
+      # `-backend=false` is critical: we don't have a backend configured in
+      # this repo (state lives wherever the user keeps it). Without the flag,
+      # init would prompt for backend config and hang or fail in CI.
+      - name: tofu init (no backend)
+        run: tofu init -backend=false
+
+      - name: tofu validate
+        run: tofu validate

@@ -1,0 +1,26 @@
+stages:
+  - validate
+
+# Repo-wide tofu fmt + validate. The per-subdirectory pipelines under
+# hcloud-postinstall/.gitlab-ci.yml are templates intended to be copied
+# into a standalone repo (GitLab CI only picks up the root file). This
+# root pipeline is the one that actually runs against the showcase repo.
+.tofu_validate:
+  stage: validate
+  image: ghcr.io/opentofu/opentofu:1.6.0
+  before_script:
+    - cd "$PROJECT_DIR"
+  script:
+    - tofu fmt -check -recursive
+    - tofu init -backend=false
+    - tofu validate
+
+tofu:hcloud-mgmt:
+  extends: .tofu_validate
+  variables:
+    PROJECT_DIR: hcloud-mgmt
+
+tofu:ovh-mgmt:
+  extends: .tofu_validate
+  variables:
+    PROJECT_DIR: ovh-mgmt
