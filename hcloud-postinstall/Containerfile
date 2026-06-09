@@ -11,4 +11,12 @@ RUN apk add --no-cache curl jq bash && \
 COPY post-install.sh /usr/local/bin/post-install.sh
 RUN chmod +x /usr/local/bin/post-install.sh
 
+# Drop root: the script only needs HTTPS to api.hetzner.cloud (hcloud CLI),
+# jq on stdin, and bash to drive the loop — none of which require privileges.
+# UID 10001 is high enough to satisfy Kubernetes PodSecurity `restricted`
+# (which forbids UID 0 and most low UIDs) without colliding with Alpine's
+# default system accounts. Numeric form so K8s admission can read it.
+RUN adduser -D -u 10001 -h /home/nonroot nonroot
+USER 10001
+
 ENTRYPOINT ["/usr/local/bin/post-install.sh"]

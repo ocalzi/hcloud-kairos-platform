@@ -19,6 +19,10 @@ Idempotent. Safe to run on a cron. Doesn't touch running VMs.
 
 ## Run it
 
+The container runs as **UID 10001 (non-root)** out of the box — no
+`--user` override needed, and it satisfies Kubernetes' `restricted`
+PodSecurity profile without any extra `securityContext` plumbing.
+
 ```sh
 docker run --rm \
   -e HCLOUD_TOKEN="$HCLOUD_TOKEN" \
