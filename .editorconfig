@@ -1,0 +1,23 @@
+# See https://editorconfig.org for syntax. This file pins line endings,
+# indentation, and trailing-whitespace policy so editor-default behaviour
+# doesn't fight `tofu fmt` / `shellcheck` on first save.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{tf,tfvars,hcl}]
+indent_size = 2
+
+[*.{yml,yaml,json}]
+indent_size = 2
+
+[*.{md,sh,tpl}]
+indent_size = 2
+
+[Makefile]
+indent_style = tab

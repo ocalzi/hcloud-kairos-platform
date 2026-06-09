@@ -1,5 +1,9 @@
 # hcloud-kairos-platform
 
+[![terraform-validate](https://github.com/ocalzi/hcloud-kairos-platform/actions/workflows/terraform-validate.yml/badge.svg?branch=main)](https://github.com/ocalzi/hcloud-kairos-platform/actions/workflows/terraform-validate.yml)
+[![postinstall-build](https://github.com/ocalzi/hcloud-kairos-platform/actions/workflows/postinstall-build.yml/badge.svg?branch=main)](https://github.com/ocalzi/hcloud-kairos-platform/actions/workflows/postinstall-build.yml)
+[![cosign-signed](https://img.shields.io/badge/cosign-signed-success?logo=sigstore)](https://github.com/ocalzi/hcloud-kairos-platform/blob/main/hcloud-postinstall/README.md#run-it)
+
 Smallest possible production-grade Kubernetes on Hetzner Cloud — minimal cost,
 fully integrated with Hetzner primitives.
 
