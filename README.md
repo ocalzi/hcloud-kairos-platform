@@ -113,23 +113,23 @@ sequenceDiagram
     participant LE as Let's Encrypt
 
     Dev->>Tofu: tofu apply (hcloud-mgmt)
-    Tofu->>HCloud: create network + server<br/>(image=debian-13, iso=kairos)
+    Tofu->>HCloud: create network and server (image=debian-13, iso=kairos)
     HCloud-->>VM: power on, boot from Kairos ISO
     VM->>VM: auto-installer writes Kairos to disk
     VM->>HCloud: power off (ISO still attached)
 
-    Note over Post: post-job stage<br/>CI step, K8s CronJob, or one-shot
-    Dev->>Post: run hcloud-postinstall container<br/>(HCLOUD_TOKEN in env)
-    Post->>HCloud: list servers; filter status=off + iso name/desc ~= kairos
-    Post->>HCloud: detach-iso + poweron
+    Note over Post: post-job stage — CI step, K8s CronJob, or one-shot
+    Dev->>Post: run hcloud-postinstall container with HCLOUD_TOKEN
+    Post->>HCloud: list servers, filter status=off and iso name contains kairos
+    Post->>HCloud: detach-iso, then poweron
     HCloud-->>VM: power on, boot from disk
-    VM->>VM: k3s + Traefik + cert-manager + Netbird bootstrap
+    VM->>VM: bootstrap k3s, Traefik, cert-manager, Netbird
 
     Dev->>Tofu: tofu apply (ovh-mgmt)
     Tofu->>OVH: A record netbird_domain -> gateway public IPv4
 
-    Note over LE,VM: cert-manager solves HTTP-01<br/>via Traefik on :80
-    LE-->>VM: issue + renew certificate
+    Note over LE,VM: cert-manager solves HTTP-01 via Traefik on :80
+    LE-->>VM: issue and renew certificate
 ```
 
 The pieces *can* run in the same pipeline (one CI job: `tofu apply` →
